@@ -1,0 +1,25 @@
+# data
+*.dcm
+*.nii.gz
+
+*.npy
+
+*.doc
+*.xls
+*.pdf
+*.ppt
+
+*.jpg
+*.docx
+*.xlsx
+*.pptx
+
+# jupyter
+.ipynb_checkpoints/
+
+# weights
+*.pth
+*.h5
+
+# exp
+exp*
