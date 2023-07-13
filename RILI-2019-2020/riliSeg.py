@@ -236,8 +236,8 @@ if __name__ == "__main__":
             nrrd_path = args.savePathNRDD.replace('.nrrd', '')
 
     preview_path = './' + patient_name + '_preview.jpg'
-    if args.savePath != '.' and not nrrd_path.startswith('.'):
-        preview_path = (Path(nrrd_path).parent / 'previews' / (patient_name + '_preview.jpg')).as_posix()
+    if args.savePath == '.' and args.savePathNRDD != '.':
+        preview_path = (Path(nrrd_path).parent.parent / 'previews' / (patient_name + '_preview.jpg')).as_posix()
     elif args.savePath != '.':
         if '.jpg' not in args.savePath and '.png' not in args.savePath:
             preview_path = (Path(args.savePath) / (patient_name + '_preview.jpg')).as_posix()
