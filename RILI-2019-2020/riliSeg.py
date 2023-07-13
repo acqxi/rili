@@ -214,7 +214,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Your program description")
     parser.add_argument('-n', "--net", type=str, default="unet+", help="Network model (default: unet+)")
-    parser.add_argument('-w', "--weightPath", type=str, default=default_weight_path , help="Network parameters")
+    parser.add_argument('-w', "--weightPath", type=str, default=default_weight_path, help="Network parameters")
     parser.add_argument('-i', "--patientDicomPath", type=str, required=True, help="Patient data folder")
     parser.add_argument('-b', "--batchSize", type=int, default=8, help="Batch size for computation")
     parser.add_argument('-r', "--window", type=int, nargs=2, default=[-1000, 200], help="Lung windows range for preview images")
@@ -236,7 +236,9 @@ if __name__ == "__main__":
             nrrd_path = args.savePathNRDD.replace('.nrrd', '')
 
     preview_path = './' + patient_name + '_preview.jpg'
-    if args.savePath != '.':
+    if args.savePath != '.' and not nrrd_path.startswith('.'):
+        preview_path = (Path(nrrd_path).parent / 'previews' / (patient_name + '_preview.jpg')).as_posix()
+    elif args.savePath != '.':
         if '.jpg' not in args.savePath and '.png' not in args.savePath:
             preview_path = (Path(args.savePath) / (patient_name + '_preview.jpg')).as_posix()
         else:
