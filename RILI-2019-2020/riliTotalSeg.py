@@ -311,7 +311,7 @@ def inference2itk(source: str | Path,
         os.remove(seg_nii)
         os.remove(rili_nii)
         sitk.WriteImage(img_itk, targetFolder / (source.name + '.nrrd'))
-        sitk.WriteImage(seg_itk, targetFolder / (source.name + 'seg.nrrd'))
+        sitk.WriteImage(seg_itk, targetFolder / (source.name + '.seg.nrrd'))
         sitk.WriteImage(seg_rili_itk, targetFolder / (source.name + 'rili.seg.nrrd'))
 
     if preview:
@@ -324,7 +324,7 @@ def inference2itk(source: str | Path,
 class ArgsRiliTotalSeg(argparse.Namespace):
     net: str = "unet"
     '''Network model (default: unet)'''
-    weightPath: str = "0.0244_109.pth"
+    weightPath: str = (Path(__file__).parent / "D.pth").as_posix()
     '''Network parameters'''
     input: str
     '''input data dcms folder or nii file'''
@@ -340,6 +340,8 @@ class ArgsRiliTotalSeg(argparse.Namespace):
     '''info level 0: no info, 1: only important info, 2: all info'''
     type: str = 'nrrd'
     '''output type: nrrd or nii'''
+    scilent: bool = False
+    '''scilent mode like no infoLv'''
 
 
 if __name__ == "__main__":
@@ -358,14 +360,16 @@ if __name__ == "__main__":
                         type=int,
                         default=1,
                         help="info level 0: no info, 1: only important info, 2: all info")
-    parser.add_argument('-t', "--type", type=str, default='nrrd', help="output type: nrrd or nii")
+    parser.add_argument('-t', "--type", type=str, default='nii', help="output type: nrrd or nii")
+    parser.add_argument('-s', "--scilent", action="store_true", help="scilent mode like no infoLv")
     args = ArgsRiliTotalSeg()
     parser.parse_args(namespace=args)
 
     inference2itk(args.input,
                   args.output,
                   args.weightPath,
+                  type=args.type,
                   batchSize=args.batchSize,
                   window=args.window,
                   preview=args.preview,
-                  infoLv=args.infoLv)
+                  infoLv=args.infoLv if not args.scilent else 0)
