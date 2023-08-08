@@ -118,21 +118,22 @@ def dcm_to_nifti_manual(source: Path, target: Path) -> Tuple[sitk.Image, np.ndar
 
 
 def deal_input(source: Path, target: Path, infoLv: int = 0) -> Tuple[np.ndarray, sitk.Image, Path]:
+    source_name = source.name.split('.')[0]
     if '.nii' not in target.name:
-        img_nii = target / (source.name + '.nii.gz')
+        img_nii = target / (source_name + '.nii.gz')
     else:
         img_nii = target
     if source.is_dir():
         if not img_nii.exists():
             try:
                 dcm_to_nifti(source, img_nii)
-                info(f'convert {source.name} folder to {img_nii.name}', show=infoLv > 0)
+                info(f'convert {source_name} folder to {img_nii.name}', show=infoLv > 0)
                 img_itk = sitk.ReadImage(str(img_nii))
             except Exception as e:
                 info('defalut convert method failed, try manual convert method', show=infoLv > 0)
                 info(e, show=infoLv > 1)
                 img_itk, img_3d = dcm_to_nifti_manual(source, img_nii)
-                info(f'convert {source.name} folder to {img_nii.name}', show=infoLv > 0)
+                info(f'convert {source_name} folder to {img_nii.name}', show=infoLv > 0)
         else:
             img_itk = sitk.ReadImage(str(img_nii))
     elif source.is_file() and '.nii' in source.name:
@@ -285,8 +286,11 @@ def inference2itk(source: str | Path,
 
     if isinstance(source, str):
         source = Path(source)
+    source_name = source.name.split('.')[0]
     if isinstance(targetFolder, str):
         targetFolder = Path(targetFolder)
+        if source_name not in str(targetFolder):
+            targetFolder = targetFolder / source_name
         targetFolder.mkdir(parents=True, exist_ok=True)
     if isinstance(modelWeight, str):
         modelWeight = Path(modelWeight)
@@ -299,7 +303,7 @@ def inference2itk(source: str | Path,
     rili = postprocess(rili_raw, seg3d, lfilter, threshold=THRESHOLD, infoLv=infoLv)
     seg_rili = merge_pred(rili, seg3d, lfilter, infoLv=infoLv)
 
-    rili_nii = targetFolder / (source.name + '_rili.nii.gz')
+    rili_nii = targetFolder / (source_name + '_rili.nii.gz')
     seg_rili_itk = toITK(seg_rili, rili_nii, {
         'spacing': seg_itk.GetSpacing(),
         'origin': seg_itk.GetOrigin(),
@@ -310,15 +314,15 @@ def inference2itk(source: str | Path,
         os.remove(img_nii)
         os.remove(seg_nii)
         os.remove(rili_nii)
-        sitk.WriteImage(img_itk, targetFolder / (source.name + '.nrrd'))
-        sitk.WriteImage(seg_itk, targetFolder / (source.name + '.seg.nrrd'))
-        sitk.WriteImage(seg_rili_itk, targetFolder / (source.name + 'rili.seg.nrrd'))
+        sitk.WriteImage(img_itk, targetFolder / (source_name + '.nrrd'))
+        sitk.WriteImage(seg_itk, targetFolder / (source_name + '.seg.nrrd'))
+        sitk.WriteImage(seg_rili_itk, targetFolder / (source_name + '_rili.seg.nrrd'))
 
     if preview:
-        draw(img3d, seg_rili, targetFolder / (source.name + '_seg.png'))
-        info(f'Preview saved: {source.name} -> {targetFolder / (source.name + "_seg.png")}')
+        draw(img3d, seg_rili, targetFolder / (source_name + '_seg.png'))
+        info(f'Preview saved: {source_name} -> {targetFolder / (source_name + "_seg.png")}')
 
-    info(f'Inference finished: {source.name} -> {targetFolder}, time cost: {time.time() - start:.2f}s')
+    info(f'Inference finished: {source_name} -> {targetFolder}, time cost: {time.time() - start:.2f}s')
 
 
 class ArgsRiliTotalSeg(argparse.Namespace):
