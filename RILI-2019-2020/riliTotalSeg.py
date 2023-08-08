@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 import time
@@ -15,7 +16,7 @@ from torchvision import transforms as xfms
 from totalsegmentator.dicom_io import dcm_to_nifti
 from totalsegmentator.python_api import totalsegmentator
 
-HU_CLIP = (-1000, 200)
+HU_CLIP = (-900, 124)
 IMG_SIZE = 512
 NET_SIZE = 448
 MEAN = 0.36
@@ -23,7 +24,7 @@ STD = 0.42
 BATCH_SIZE = 8
 XFM_COMP = xfms.Compose([
     xfms.ToTensor(),
-    xfms.Resize((IMG_SIZE, IMG_SIZE), antialias=True), # type: ignore
+    xfms.Resize((IMG_SIZE, IMG_SIZE), antialias=True),  # type: ignore
     xfms.CenterCrop((NET_SIZE, NET_SIZE)),
     xfms.Normalize(MEAN, STD)
 ])
@@ -292,7 +293,7 @@ def inference2itk(source: str | Path,
 
     img3d, img_itk, img_nii = deal_input(source=source, target=targetFolder, infoLv=infoLv)
     seg3d, seg_itk, seg_nii = pre_seg_pred(img_nii, target=targetFolder, gpu=torch.cuda.is_available(), infoLv=infoLv)
-    img4dts, lfilter = preprocess(img3d, seg3d, window=window, xfmComp=xfmComp, infoLv=infoLv)
+    img4dts, lfilter = preprocess(img3d, seg3d, window=HU_CLIP, xfmComp=xfmComp, infoLv=infoLv)
     net = load_model(net, modelWeight, infoLv=infoLv)
     rili_raw = evaluate(net, img4dts, batchSize=batchSize, gpu=torch.cuda.is_available(), infoLv=infoLv)
     rili = postprocess(rili_raw, seg3d, lfilter, threshold=THRESHOLD, infoLv=infoLv)
@@ -318,3 +319,53 @@ def inference2itk(source: str | Path,
         info(f'Preview saved: {source.name} -> {targetFolder / (source.name + "_seg.png")}')
 
     info(f'Inference finished: {source.name} -> {targetFolder}, time cost: {time.time() - start:.2f}s')
+
+
+class ArgsRiliTotalSeg(argparse.Namespace):
+    net: str = "unet"
+    '''Network model (default: unet)'''
+    weightPath: str = "0.0244_109.pth"
+    '''Network parameters'''
+    input: str
+    '''input data dcms folder or nii file'''
+    output: str
+    '''output folder'''
+    batchSize: int = 8
+    '''Batch size for computation'''
+    window: tuple = (-1000, 200)
+    '''Lung windows range for preview images'''
+    preview: bool = False
+    '''preview images'''
+    infoLv: int = 1
+    '''info level 0: no info, 1: only important info, 2: all info'''
+    type: str = 'nrrd'
+    '''output type: nrrd or nii'''
+
+
+if __name__ == "__main__":
+    default_weight_path = (Path(__file__).parent / "D.pth").as_posix()
+
+    parser = argparse.ArgumentParser(description="RILI total segmentator")
+    parser.add_argument('-n', "--net", type=str, default="unet+", help="Network model (default: unet+)")
+    parser.add_argument('-w', "--weightPath", type=str, default=default_weight_path, help="Network parameters")
+    parser.add_argument('-i', "--input", type=str, required=True, help="input data dcms folder or nii file")
+    parser.add_argument('-o', "--output", type=str, required=True, help="output folder")
+    parser.add_argument('-b', "--batchSize", type=int, default=8, help="Batch size for computation")
+    parser.add_argument('-r', "--window", type=int, nargs=2, default=(-1000, 200), help="Lung windows range for preview images")
+    parser.add_argument('-p', "--preview", action="store_true", help="preview images")
+    parser.add_argument('-l',
+                        "--infoLv",
+                        type=int,
+                        default=1,
+                        help="info level 0: no info, 1: only important info, 2: all info")
+    parser.add_argument('-t', "--type", type=str, default='nrrd', help="output type: nrrd or nii")
+    args = ArgsRiliTotalSeg()
+    parser.parse_args(namespace=args)
+
+    inference2itk(args.input,
+                  args.output,
+                  args.weightPath,
+                  batchSize=args.batchSize,
+                  window=args.window,
+                  preview=args.preview,
+                  infoLv=args.infoLv)
