@@ -11,10 +11,12 @@ import numpy as np
 import pydicom
 import SimpleITK as sitk
 import torch
-from model import UNet
 from torchvision import transforms as xfms
+
 from totalsegmentator.dicom_io import dcm_to_nifti
 from totalsegmentator.python_api import totalsegmentator
+
+from model import UNet
 
 HU_CLIP = (-900, 124)
 IMG_SIZE = 512
